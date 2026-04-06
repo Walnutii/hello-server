@@ -9,7 +9,6 @@ import com.stu212306174.mapper.UserMapper;
 import com.stu212306174.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -19,9 +18,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result<String> register(UserDTO userDTO) {
-        LambdaQueryWrapper<User> query = new LambdaQueryWrapper<>();
-        query.eq(User::getUsername, userDTO.getUsername());
-        if (userMapper.selectOne(query) != null) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, userDTO.getUsername());
+        User exist = userMapper.selectOne(wrapper);
+
+        if (exist != null) {
             return Result.error(ResultCode.USER_HAS_EXISTED);
         }
 
@@ -29,18 +30,31 @@ public class UserServiceImpl implements UserService {
         user.setUsername(userDTO.getUsername());
         user.setPassword(userDTO.getPassword());
         userMapper.insert(user);
-        return Result.success("注册成功");
+
+        return Result.success("注册成功！");
     }
 
     @Override
     public Result<String> login(UserDTO userDTO) {
-        LambdaQueryWrapper<User> query = new LambdaQueryWrapper<>();
-        query.eq(User::getUsername, userDTO.getUsername());
-        User user = userMapper.selectOne(query);
+        LambdaQueryWrapper<User>wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, userDTO.getUsername());
+        User user = userMapper.selectOne(wrapper);
 
-        if (user == null) return Result.error(ResultCode.USER_NOT_EXIST);
-        if (!user.getPassword().equals(userDTO.getPassword())) return Result.error(ResultCode.PASSWORD_ERROR);
+        if (user == null) {
+            return Result.error(ResultCode.USER_NOT_EXIST);
+        }
+        if (!user.getPassword().equals(userDTO.getPassword())) {
+            return Result.error(ResultCode.PASSWORD_ERROR);
+        }
+        return Result.success("登录成功");
+    }
 
-        return Result.success(UUID.randomUUID().toString());
+    @Override
+    public Result<String> getUserById(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            return Result.error(ResultCode.USER_NOT_EXIST);
+        }
+        return Result.success("查询成功，用户：" + user.getUsername());
     }
 }
