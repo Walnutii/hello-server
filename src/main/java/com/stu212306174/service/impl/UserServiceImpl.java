@@ -1,6 +1,7 @@
 package com.stu212306174.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.stu212306174.common.Result;
 import com.stu212306174.common.ResultCode;
 import com.stu212306174.dto.UserDTO;
@@ -36,7 +37,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result<String> login(UserDTO userDTO) {
-        LambdaQueryWrapper<User>wrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getUsername, userDTO.getUsername());
         User user = userMapper.selectOne(wrapper);
 
@@ -56,5 +57,13 @@ public class UserServiceImpl implements UserService {
             return Result.error(ResultCode.USER_NOT_EXIST);
         }
         return Result.success("查询成功，用户：" + user.getUsername());
+    }
+
+    // 👇 任务6新增的分页方法
+    @Override
+    public Result<Object> getUserPage(Integer pageNum, Integer pageSize) {
+        Page<User> page = new Page<>(pageNum, pageSize);
+        Page<User> resultPage = userMapper.selectPage(page, null);
+        return Result.success(resultPage);
     }
 }
