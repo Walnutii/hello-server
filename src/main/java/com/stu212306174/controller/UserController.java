@@ -3,6 +3,7 @@ package com.stu212306174.controller;
 import com.stu212306174.common.Result;
 import com.stu212306174.dto.UserDTO;
 import com.stu212306174.service.UserService;
+import com.stu212306174.vo.UserDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,11 +32,18 @@ public class UserController {
         return userService.getUserById(id);
     }
 
-    // 👇 任务6新增的分页接口
+    // 任务6新增的分页接口
     @GetMapping("/page")
     public Result<Object> getUserPage(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "5") Integer pageSize) {
         return userService.getUserPage(pageNum, pageSize);
     }
+
+    // ====================== 任务7 只加这一个接口 ======================
+    @GetMapping("/{id}/detail")
+    public Result<UserDetailVO> getUserDetail(@PathVariable Long id) {
+        return userService.getUserDetail(id);
+    }
+
 }

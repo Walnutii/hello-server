@@ -8,14 +8,24 @@ import com.stu212306174.dto.UserDTO;
 import com.stu212306174.entity.User;
 import com.stu212306174.mapper.UserMapper;
 import com.stu212306174.service.UserService;
+import com.stu212306174.vo.UserDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import com.alibaba.fastjson.JSON;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    // 用你已经熟悉的 @Autowired，不再用 @Resource，避免导入问题
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    private static final String KEY_PREFIX = "user:detail:";
 
     @Override
     public Result<String> register(UserDTO userDTO) {
@@ -59,11 +69,41 @@ public class UserServiceImpl implements UserService {
         return Result.success("查询成功，用户：" + user.getUsername());
     }
 
-    // 👇 任务6新增的分页方法
     @Override
     public Result<Object> getUserPage(Integer pageNum, Integer pageSize) {
         Page<User> page = new Page<>(pageNum, pageSize);
         Page<User> resultPage = userMapper.selectPage(page, null);
         return Result.success(resultPage);
+    }
+
+    @Override
+    public Result<UserDetailVO> getUserDetail(Long userId) {
+        // 1. 查 Redis 缓存
+        String key = KEY_PREFIX + userId;
+        String json = stringRedisTemplate.opsForValue().get(key);
+
+        if (json != null) {
+            UserDetailVO vo = JSON.parseObject(json, UserDetailVO.class);
+            return Result.success(vo);
+        }
+
+        // 2. 从数据库查用户信息
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return Result.error(ResultCode.USER_NOT_EXIST);
+        }
+
+        // 3. 组装VO对象
+        UserDetailVO vo = new UserDetailVO();
+        vo.setUserId(user.getId());
+        vo.setUsername(user.getUsername());
+        vo.setRealName("系统用户");
+        vo.setPhone("未设置");
+        vo.setAddress("未设置");
+
+        // 4. 存入Redis，设置10分钟过期
+        stringRedisTemplate.opsForValue().set(key, JSON.toJSONString(vo), 10, TimeUnit.MINUTES);
+
+        return Result.success(vo);
     }
 }
